@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClearSkill 清理决策报告</title>
+<style>
+  :root{
+    --bg:#f5f5f4;
+    --card:#ffffff;
+    --ink:#1f2933;
+    --muted:#6b7280;
+    --soft:#f3f4f6;
+    --line:#e5e7eb;
+    --green:#0f8a4b;
+    --green-bg:#edf8f1;
+    --yellow:#a16207;
+    --yellow-bg:#fff7df;
+    --red:#b42318;
+    --red-bg:#fff0ee;
+    --blue:#2563eb;
+    --blue-bg:#eef4ff;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;
+    line-height:1.55;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:28px 18px 56px}
+  header{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px}
+  h1{margin:0;font-size:26px;line-height:1.2;letter-spacing:0;font-weight:750}
+  .meta{margin-top:6px;color:var(--muted);font-size:13px}
+  .tagline{color:var(--muted);font-size:14px;margin:6px 0 0}
+  .status-pill{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 12px;font-size:13px;color:var(--muted);white-space:nowrap}
+
+  .hero{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:20px;
+    margin-bottom:18px;
+  }
+  .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+  .metric{border:1px solid var(--line);border-radius:8px;padding:14px;background:#fff}
+  .metric .k{font-size:12px;color:var(--muted);margin-bottom:4px}
+  .metric .v{font-size:22px;font-weight:750;font-variant-numeric:tabular-nums}
+  .metric.green .v{color:var(--green)}
+  .metric.yellow .v{color:var(--yellow)}
+  .metric.red .v{color:var(--red)}
+  .bar{height:12px;border-radius:999px;background:var(--line);display:flex;overflow:hidden}
+  .bar i{display:block;height:100%}
+  .seg-green{background:var(--green)}
+  .seg-yellow{background:var(--yellow)}
+  .seg-red{background:var(--red)}
+  .seg-other{background:#8aa0b8}
+  .bar i+i{border-left:1px solid #fff}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;color:var(--muted);font-size:12px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:9px;height:9px;border-radius:99px;display:inline-block;background:#8aa0b8}
+  .dot.green{background:var(--green)}
+  .dot.yellow{background:var(--yellow)}
+  .dot.red{background:var(--red)}
+
+  .panel{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:18px;
+    margin-bottom:18px;
+  }
+  .panel h2,.section h2{margin:0 0 12px;font-size:17px;line-height:1.25}
+  .lead{margin:0 0 10px;color:var(--ink);font-size:14px}
+  .priority{margin:0;padding-left:20px;color:var(--ink)}
+  .priority li{margin:5px 0}
+
+  .decision-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
+  .section{min-width:0}
+  .section-head{
+    border:1px solid var(--line);
+    background:var(--card);
+    border-radius:8px 8px 0 0;
+    padding:14px 14px 12px;
+    border-bottom:none;
+  }
+  .section-head h2{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0}
+  .count{font-size:12px;color:var(--muted);font-weight:500}
+  .section-note{margin:6px 0 0;color:var(--muted);font-size:12px}
+  .cards{display:grid;gap:10px}
+  .card{
+    border:1px solid var(--line);
+    background:var(--card);
+    border-radius:8px;
+    padding:14px;
+  }
+  .section-head + .cards .card:first-child{border-top-left-radius:0;border-top-right-radius:0}
+  .card-title{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
+  .card h3{margin:0;font-size:15px;line-height:1.3}
+  .size{font-weight:750;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--blue)}
+  .badge{font-size:12px;border-radius:999px;padding:2px 8px;font-weight:650;white-space:nowrap}
+  .badge.low{background:var(--green-bg);color:var(--green)}
+  .badge.mid{background:var(--yellow-bg);color:var(--yellow)}
+  .badge.high{background:var(--red-bg);color:var(--red)}
+  .decision{display:grid;gap:8px;margin:10px 0}
+  .field{border-top:1px solid var(--line);padding-top:8px}
+  .field:first-child{border-top:none;padding-top:0}
+  .label{font-size:12px;color:var(--muted);font-weight:650;margin-bottom:2px}
+  .text{font-size:13px;color:var(--ink)}
+  .action{background:var(--blue-bg);border:1px solid #d9e6ff;border-radius:8px;padding:10px;margin:10px 0}
+  .path{
+    font-family:"SF Mono",ui-monospace,Menlo,monospace;
+    word-break:break-all;
+    font-size:12px;
+    color:var(--muted);
+    background:var(--soft);
+    border-radius:6px;
+    padding:8px;
+  }
+  details{margin-top:10px}
+  summary{cursor:pointer;color:var(--muted);font-size:13px}
+  .cmd{position:relative;margin:8px 0 0;padding:10px 44px 10px 10px;border-radius:6px;background:#111827;color:#e5e7eb;font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:12px;overflow-x:auto;white-space:pre}
+  .copy{position:absolute;right:8px;top:7px;border:none;border-radius:5px;background:#374151;color:#fff;font-size:11px;padding:4px 7px;cursor:pointer}
+  .copy.done{background:var(--green)}
+  .buttons{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  button.action-btn{border:none;border-radius:7px;padding:8px 12px;font-weight:650;cursor:pointer;font-size:13px}
+  button.trash{background:var(--blue-bg);color:var(--blue)}
+  button.danger{background:var(--red-bg);color:var(--red)}
+  button.open{background:var(--soft);color:var(--ink)}
+  button:disabled{opacity:.5;cursor:default}
+  .status{font-size:13px;color:var(--muted);align-self:center}
+  .status.ok{color:var(--green);font-weight:650}
+  .status.err{color:var(--red);font-weight:650}
+
+  .table-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;border-bottom:1px solid var(--line);padding:10px;vertical-align:top}
+  th{color:var(--muted);font-size:12px;background:#fafafa}
+  td.path-cell{font-family:"SF Mono",ui-monospace,Menlo,monospace;color:var(--muted);word-break:break-all}
+  .footer{color:var(--muted);font-size:12px;text-align:center;margin-top:28px}
+
+  @media (max-width: 900px){
+    header{display:block}
+    .status-pill{display:inline-block;margin-top:12px}
+    .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .decision-grid{grid-template-columns:1fr}
+  }
+  @media (max-width: 520px){
+    .wrap{padding:18px 12px 40px}
+    .metrics{grid-template-columns:1fr}
+    .metric .v{font-size:20px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>ClearSkill</h1>
+      <p class="tagline">把磁盘占用变成清晰的清理决策。</p>
+      <div class="meta" id="meta"></div>
+    </div>
+    <div class="status-pill">只读扫描 · 删除需确认</div>
+  </header>
+  <main id="app"></main>
+  <div class="footer">ClearSkill · Safe Clean / Review First / Do Not Touch</div>
+</div>
+
+<script>
+const DATA = __REPORT_DATA__;
+const DELETE = __DELETE_CONFIG__;
+const FM = (DATA.system && /win/i.test(DATA.system.os||'')) ? '资源管理器' : '访达';
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const b64 = o => btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+const fromB64 = s => JSON.parse(decodeURIComponent(escape(atob(s))));
+const cleanSize = s => String(s == null ? '' : s).replace(/[（(]\s*估算[^）)]*[）)]/g, '').trim();
+
+function parseGB(str){
+  const m = String(str || '').match(/([\d.]+)\s*(TB|GB|MB)?/i);
+  if(!m) return 0;
+  let v = parseFloat(m[1]);
+  const unit = (m[2] || 'GB').toUpperCase();
+  if(unit === 'TB') v *= 1024;
+  if(unit === 'MB') v /= 1024;
+  return v;
+}
+
+function riskClass(level){
+  const s = String(level || '').toLowerCase();
+  if(s.includes('高') || s.includes('high')) return 'high';
+  if(s.includes('中') || s.includes('medium') || s.includes('mid')) return 'mid';
+  return 'low';
+}
+
+function riskText(level){
+  return level || '低';
+}
+
+function textOr(value, fallback){
+  return value && String(value).trim() ? value : fallback;
+}
+
+function commandBlock(c){
+  const label = c && c.label ? `<div class="label">${esc(c.label)}</div>` : '';
+  const cmd = c && c.cmd ? c.cmd : String(c || '');
+  return `${label}<div class="cmd"><button class="copy" data-cmd="${b64(cmd)}">复制</button>${esc(cmd)}</div>`;
+}
+
+function renderHero(){
+  const s = DATA.system || {};
+  const sm = DATA.summary || {};
+  const ts = sm.tier_stats || {};
+  const total = parseGB(s.disk_total) || 1;
+  const used = parseGB(s.disk_used);
+  const green = parseGB(ts.green);
+  const yellow = parseGB(ts.yellow);
+  const red = parseGB(ts.red);
+  const other = Math.max(0, used - green - yellow - red);
+  const pct = v => `${Math.max(0, Math.min(100, v / total * 100)).toFixed(2)}%`;
+
+  document.getElementById('meta').textContent = `生成于 ${DATA.generated_at || '-'} · 扫描耗时 ${DATA.scan_seconds || '?'}s`;
+
+  return `<section class="hero">
+    <div class="metrics">
+      <div class="metric"><div class="k">可用空间</div><div class="v">${esc(s.disk_free || '-')}</div></div>
+      <div class="metric green"><div class="k">可清理</div><div class="v">${esc(cleanSize(ts.green || '-'))}</div></div>
+      <div class="metric yellow"><div class="k">需确认</div><div class="v">${esc(cleanSize(ts.yellow || '-'))}</div></div>
+      <div class="metric red"><div class="k">别乱动</div><div class="v">${esc(cleanSize(ts.red || '-'))}</div></div>
+    </div>
+    <div class="bar" title="已用空间分布">
+      ${green ? `<i class="seg-green" style="width:${pct(green)}"></i>` : ''}
+      ${yellow ? `<i class="seg-yellow" style="width:${pct(yellow)}"></i>` : ''}
+      ${red ? `<i class="seg-red" style="width:${pct(red)}"></i>` : ''}
+      ${other ? `<i class="seg-other" style="width:${pct(other)}"></i>` : ''}
+    </div>
+    <div class="legend">
+      <span><i class="dot green"></i>可清理 ${esc(cleanSize(ts.green || '-'))}</span>
+      <span><i class="dot yellow"></i>需确认 ${esc(cleanSize(ts.yellow || '-'))}</span>
+      <span><i class="dot red"></i>别乱动 ${esc(cleanSize(ts.red || '-'))}</span>
+      <span><i class="dot"></i>系统及其他 约 ${other.toFixed(1)} GB</span>
+    </div>
+  </section>`;
+}
+
+function renderPriority(){
+  const sm = DATA.summary || {};
+  if(!sm.overview && !(sm.priority || []).length) return '';
+  const items = Array.isArray(sm.priority) ? sm.priority : [sm.priority].filter(Boolean);
+  return `<section class="panel">
+    <h2>建议先做什么</h2>
+    ${sm.overview ? `<p class="lead">${esc(sm.overview)}</p>` : ''}
+    ${items.length ? `<ol class="priority">${items.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}
+  </section>`;
+}
+
+function normalizeGreen(it){
+  return {
+    tier:'green',
+    name:it.name,
+    size:it.size_estimate || it.size,
+    path:it.path,
+    risk:it.risk_level || '低',
+    why:textOr(it.why, it.note || '这是可再生缓存或临时文件，用来加速重复操作。'),
+    effect:textOr(it.delete_effect, '删除后相关工具会在需要时重新生成或重新下载。'),
+    action:textOr(it.recommended_action, '优先移到废纸篓；确认工具运行正常后再清空废纸篓。'),
+    commands:it.commands || [],
+    trash_paths:it.trash_paths || [],
+    open_paths:[it.path].filter(Boolean)
+  };
+}
+
+function normalizeYellow(it){
+  return {
+    tier:'yellow',
+    name:it.name,
+    size:it.size,
+    path:it.path,
+    risk:it.risk_level || '中',
+    why:textOr(it.content_profile, '这里包含用户数据或应用托管数据。'),
+    effect:textOr(it.risk, '直接删除可能丢失资料、登录状态、历史记录或应用配置。'),
+    action:textOr(it.recommended_action, it.disposal || '打开目录或对应应用，人工确认后再处理。'),
+    commands:[],
+    trash_paths:it.trash_paths || [],
+    open_paths:[it.path].filter(Boolean),
+    details:[it.why_manual, it.disposal, it.open_note].filter(Boolean)
+  };
+}
+
+function normalizeRed(it){
+  return {
+    tier:'red',
+    name:it.name,
+    size:it.size,
+    path:it.path,
+    risk:it.risk_level || '高',
+    why:textOr(it.why_keep, '这不是普通垃圾文件，可能是系统、应用本体或核心数据。'),
+    effect:textOr(it.delete_effect, '手动删除可能导致应用损坏、数据丢失或后续升级失败。'),
+    action:textOr(it.recommended_action, it.indirect_release || '通过应用内清理、正规卸载器、访达或系统设置处理。'),
+    commands:[],
+    trash_paths:[],
+    open_paths:it.app_paths || [it.path].filter(Boolean),
+    details:[it.auto_reclaim].filter(Boolean)
+  };
+}
+
+function actionButtons(item){
+  if(!DELETE) return '';
+  const buttons = [];
+  const openPaths = item.open_paths || [];
+  if(openPaths.length){
+    buttons.push(`<button class="action-btn open" data-mode="open" data-paths="${b64(openPaths)}">在${FM}打开</button>`);
+  }
+  if(item.tier === 'green' && item.trash_paths && item.trash_paths.length){
+    buttons.push(`<button class="action-btn trash" data-mode="trash" data-paths="${b64(item.trash_paths)}">移到废纸篓</button>`);
+    buttons.push(`<button class="action-btn danger" data-mode="rm" data-paths="${b64(item.trash_paths)}">直接删除</button>`);
+  }
+  if(item.tier === 'yellow' && item.trash_paths && item.trash_paths.length){
+    buttons.push(`<button class="action-btn trash" data-mode="trash" data-paths="${b64(item.trash_paths)}">移到废纸篓（安全子路径）</button>`);
+  }
+  if(!buttons.length) return '';
+  return `<div class="buttons">${buttons.join('')}<span class="status"></span></div>`;
+}
+
+function decisionCard(item){
+  const risk = riskClass(item.risk);
+  const commands = (item.commands || []).map(commandBlock).join('');
+  const details = (item.details || []).map(x => `<p class="text">${esc(x)}</p>`).join('');
+  return `<article class="card ${item.tier}">
+    <div class="card-title">
+      <h3>${esc(item.name)}</h3>
+      <div class="size">${esc(cleanSize(item.size || ''))}</div>
+    </div>
+    <span class="badge ${risk}">风险 ${esc(riskText(item.risk))}</span>
+    <div class="action">
+      <div class="label">推荐动作</div>
+      <div class="text">${esc(item.action)}</div>
+    </div>
+    <div class="decision">
+      <div class="field"><div class="label">为什么占空间</div><div class="text">${esc(item.why)}</div></div>
+      <div class="field"><div class="label">删了会怎样</div><div class="text">${esc(item.effect)}</div></div>
+    </div>
+    ${actionButtons(item)}
+    <details>
+      <summary>路径和技术细节</summary>
+      ${item.path ? `<div class="path">${esc(item.path)}</div>` : ''}
+      ${details}
+      ${commands}
+    </details>
+  </article>`;
+}
+
+function renderDecisionSection(kind, title, note, items){
+  if(!items.length) return '';
+  return `<section class="section ${kind}">
+    <div class="section-head">
+      <h2>${title}<span class="count">${items.length} 项</span></h2>
+      <p class="section-note">${note}</p>
+    </div>
+    <div class="cards">${items.map(decisionCard).join('')}</div>
+  </section>`;
+}
+
+function renderDecisions(){
+  const green = (DATA.green || []).map(normalizeGreen);
+  const yellow = (DATA.yellow || []).map(normalizeYellow);
+  const red = (DATA.red || []).map(normalizeRed);
+  return `<div class="decision-grid">
+    ${renderDecisionSection('green','可清理','Safe Clean：缓存、临时文件、可再生内容。',green)}
+    ${renderDecisionSection('yellow','需确认','Review First：含用户数据或应用托管数据。',yellow)}
+    ${renderDecisionSection('red','别乱动','Do Not Touch：走应用内或正规卸载流程。',red)}
+  </div>`;
+}
+
+function renderTop5(){
+  const rows = DATA.top5 || [];
+  if(!rows.length) return '';
+  return `<section class="panel">
+    <h2>占用排行</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>#</th><th>大小</th><th>类型</th><th>项目</th><th>路径</th><th>说明</th></tr></thead>
+      <tbody>${rows.map(r => `<tr>
+        <td>${esc(r.rank)}</td>
+        <td><strong>${esc(cleanSize(r.size))}</strong></td>
+        <td>${esc(r.type)}</td>
+        <td>${esc(r.name)}</td>
+        <td class="path-cell">${esc(r.path)}</td>
+        <td>${esc(r.note)}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+  </section>`;
+}
+
+function renderLongTerm(){
+  const items = (DATA.summary && DATA.summary.long_term) || [];
+  const denied = DATA.denied || [];
+  if(!items.length && !denied.length) return '';
+  return `<section class="panel">
+    <h2>长期习惯</h2>
+    ${items.length ? `<ul class="priority">${items.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+    ${denied.length ? `<p class="lead">以下路径权限不足，报告可能漏算：${denied.map(esc).join('、')}</p>` : ''}
+  </section>`;
+}
+
+function postAction(wrap, paths, mode){
+  const status = wrap.querySelector('.status');
+  const buttons = wrap.querySelectorAll('button');
+  status.textContent = '处理中...';
+  status.className = 'status';
+  buttons.forEach(b => b.disabled = true);
+  return fetch(DELETE.endpoint, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({token:DELETE.token, paths, mode})
+  }).then(r => r.json())
+    .catch(e => ({ok:false, error:'连接失败：' + e}))
+    .finally(() => buttons.forEach(b => b.disabled = false));
+}
+
+document.addEventListener('click', e => {
+  const copy = e.target.closest('.copy');
+  if(copy){
+    e.stopPropagation();
+    const text = fromB64(copy.dataset.cmd);
+    navigator.clipboard.writeText(text).then(() => {
+      copy.textContent = '已复制';
+      copy.classList.add('done');
+      setTimeout(() => { copy.textContent = '复制'; copy.classList.remove('done'); }, 1400);
+    });
+    return;
+  }
+
+  const btn = e.target.closest('button.action-btn');
+  if(!btn || !DELETE) return;
+  const wrap = btn.closest('.buttons');
+  const mode = btn.dataset.mode;
+  const paths = fromB64(btn.dataset.paths);
+  const verb = mode === 'rm' ? '直接删除（不可恢复）' : mode === 'trash' ? '移到废纸篓' : `在${FM}打开`;
+  if(mode !== 'open' && !confirm(`确认${verb}以下路径？\n\n${paths.join('\n')}`)) return;
+  postAction(wrap, paths, mode).then(res => {
+    const status = wrap.querySelector('.status');
+    if(res.ok){
+      status.textContent = mode === 'open' ? `已在${FM}打开` : (mode === 'rm' ? '已直接删除' : '已移到废纸篓');
+      status.className = 'status ok';
+    } else {
+      status.textContent = res.error || '操作失败';
+      status.className = 'status err';
+    }
+  });
+});
+
+document.getElementById('app').innerHTML =
+  renderHero() +
+  renderPriority() +
+  renderDecisions() +
+  renderTop5() +
+  renderLongTerm();
+</script>
+</body>
+</html>
