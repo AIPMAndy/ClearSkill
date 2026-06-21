@@ -39,6 +39,17 @@ The script detects macOS or Windows and outputs:
   applications, containers, and development caches.
 - `denied`: directories that could not be read.
 
+**Reducing permission prompts**: If the user complains about repeated macOS
+permission dialogs ("Paseo wants to access other apps' data"), use fast mode:
+
+```bash
+python3 scripts/scan.py --skip-protected > /tmp/clearskill_scan.json
+```
+
+This skips `Containers` and `Group Containers` directories that trigger
+permission prompts. Faster, no popups, but misses some app data (WeChat, Lark,
+etc.). Mention this trade-off to the user when suggesting it.
+
 ### Step 2: Classify With Cleanup Decisions
 
 Read the platform reference first:

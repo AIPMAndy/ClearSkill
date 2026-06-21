@@ -8,6 +8,14 @@ to interpret and classify. Auto-detects the OS and scans the right locations.
 STRICTLY READ-ONLY: only sizes/lists/reads metadata. Never creates, moves, or
 deletes anything.
 
+Usage:
+    scan.py [--skip-protected]
+
+Options:
+    --skip-protected    Skip directories that require special permissions
+                        (Containers, Group Containers). Faster, no permission
+                        prompts, but may miss large app data.
+
 Output shape (same on both OSes):
 {
   "generated_at", "scan_seconds",
@@ -24,6 +32,7 @@ import sys
 import time
 
 HOME = os.path.expanduser("~")
+SKIP_PROTECTED = "--skip-protected" in sys.argv
 
 
 def human(kb):
@@ -82,13 +91,16 @@ MAC_TARGETS = [
     ("home", HOME, 102400),
     ("library", os.path.join(HOME, "Library"), 51200),
     ("caches", os.path.join(HOME, "Library/Caches"), 51200),
-    ("containers", os.path.join(HOME, "Library/Containers"), 51200),
-    ("group_containers", os.path.join(HOME, "Library/Group Containers"), 51200),
+    ("containers", os.path.join(HOME, "Library/Containers"), 51200),  # PROTECTED
+    ("group_containers", os.path.join(HOME, "Library/Group Containers"), 51200),  # PROTECTED
     ("app_support", os.path.join(HOME, "Library/Application Support"), 51200),
     ("applications", "/Applications", 102400),
     ("downloads", os.path.join(HOME, "Downloads"), 51200),
     ("dev_caches", None, 51200),
 ]
+
+# Directories that typically trigger macOS permission prompts
+PROTECTED_KEYS = {"containers", "group_containers"}
 
 MAC_DEV_CACHE_PATHS = [
     "~/Library/Caches/pip", "~/Library/Caches/uv", "~/.cache", "~/.cargo",
@@ -149,8 +161,14 @@ def scan_macos():
     print("正在收集系统信息...", file=sys.stderr)
     system = system_info_macos()
     groups = {}
-    print(f"开始扫描 {len(MAC_TARGETS)} 个目标区域...", file=sys.stderr)
-    for key, path, floor in MAC_TARGETS:
+
+    targets = MAC_TARGETS
+    if SKIP_PROTECTED:
+        targets = [(k, p, f) for k, p, f in MAC_TARGETS if k not in PROTECTED_KEYS]
+        print(f"⚡ 快速模式：跳过受保护目录（不会弹权限窗口）", file=sys.stderr)
+
+    print(f"开始扫描 {len(targets)} 个目标区域...", file=sys.stderr)
+    for key, path, floor in targets:
         groups[key] = dev_caches_macos() if key == "dev_caches" else du_children(path, min_kb=floor)
     return system, groups
 
