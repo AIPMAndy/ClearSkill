@@ -59,6 +59,7 @@ def du_children(path, min_kb=51200, limit=40):
     except PermissionError:
         return [{"name": "(permission denied)", "path": path,
                  "size_kb": 0, "size_h": "?", "denied": True}]
+    print(f"扫描 {path} ({len(entries)} 项)...", file=sys.stderr)
     for name in entries:
         if name in (".", ".."):
             continue
@@ -145,8 +146,10 @@ def system_info_macos():
 
 
 def scan_macos():
+    print("正在收集系统信息...", file=sys.stderr)
     system = system_info_macos()
     groups = {}
+    print(f"开始扫描 {len(MAC_TARGETS)} 个目标区域...", file=sys.stderr)
     for key, path, floor in MAC_TARGETS:
         groups[key] = dev_caches_macos() if key == "dev_caches" else du_children(path, min_kb=floor)
     return system, groups
@@ -240,6 +243,7 @@ def system_info_windows():
 
 
 def scan_windows():
+    print("正在收集系统信息...", file=sys.stderr)
     profile = os.environ.get("USERPROFILE", HOME)
     local = os.environ.get("LOCALAPPDATA", os.path.join(profile, "AppData", "Local"))
     roaming = os.environ.get("APPDATA", os.path.join(profile, "AppData", "Roaming"))
@@ -253,6 +257,7 @@ def scan_windows():
         ("program_files_x86", os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)"), 102400),
     ]
     groups = {}
+    print(f"开始扫描 {len(targets)} 个目标区域...", file=sys.stderr)
     for key, path, floor in targets:
         groups[key] = scandir_children(path, min_kb=floor)
 
@@ -289,15 +294,18 @@ def main():
     elif sys.platform.startswith("win"):
         system, groups = scan_windows()
     else:
+        print("❌ 不支持的平台。ClearSkill 目前仅支持 macOS 和 Windows。", file=sys.stderr)
         print(json.dumps({"error": "unsupported_platform", "platform": sys.platform,
                           "message": "scan.py supports macOS and Windows only."},
                          ensure_ascii=False))
         return
+    elapsed = round(time.time() - started, 1)
+    print(f"✓ 扫描完成，耗时 {elapsed}s", file=sys.stderr)
     data = {
         "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "system": system,
         "groups": groups,
-        "scan_seconds": round(time.time() - started, 1),
+        "scan_seconds": elapsed,
     }
     print(json.dumps(data, ensure_ascii=False, indent=2))
 

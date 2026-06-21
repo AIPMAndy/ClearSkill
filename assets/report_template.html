@@ -75,6 +75,9 @@
   .lead{margin:0 0 10px;color:var(--ink);font-size:14px}
   .priority{margin:0;padding-left:20px;color:var(--ink)}
   .priority li{margin:5px 0}
+  .priority li strong{color:var(--green);font-weight:700}
+  .quick-tip{background:var(--blue-bg);border:1px solid #d9e6ff;border-radius:8px;padding:14px;margin-bottom:18px;font-size:14px}
+  .quick-tip strong{color:var(--blue)}
 
   .decision-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
   .section{min-width:0}
@@ -87,7 +90,7 @@
   }
   .section-head h2{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0}
   .count{font-size:12px;color:var(--muted);font-weight:500}
-  .section-note{margin:6px 0 0;color:var(--muted);font-size:12px}
+  .section-note{margin:6px 0 0;color:var(--muted);font-size:12px;line-height:1.5}
   .cards{display:grid;gap:10px}
   .card{
     border:1px solid var(--line);
@@ -246,9 +249,20 @@ function renderHero(){
 
 function renderPriority(){
   const sm = DATA.summary || {};
-  if(!sm.overview && !(sm.priority || []).length) return '';
+  const green = (DATA.green || []).length;
+  const yellow = (DATA.yellow || []).length;
+  const red = (DATA.red || []).length;
+
+  let quickTip = '';
+  if(green > 0){
+    quickTip = `<div class="quick-tip"><strong>💡 快速行动：</strong>先查看下方"可清理"区域的 ${green} 项，这些是安全的缓存文件，可以直接处理。</div>`;
+  } else if(yellow > 0){
+    quickTip = `<div class="quick-tip"><strong>💡 需要你确认：</strong>下方"需确认"区域的 ${yellow} 项包含用户数据，请逐项审查后再决定。</div>`;
+  }
+
+  if(!sm.overview && !(sm.priority || []).length) return quickTip;
   const items = Array.isArray(sm.priority) ? sm.priority : [sm.priority].filter(Boolean);
-  return `<section class="panel">
+  return quickTip + `<section class="panel">
     <h2>建议先做什么</h2>
     ${sm.overview ? `<p class="lead">${esc(sm.overview)}</p>` : ''}
     ${items.length ? `<ol class="priority">${items.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}
@@ -351,11 +365,11 @@ function decisionCard(item){
   </article>`;
 }
 
-function renderDecisionSection(kind, title, note, items){
+function renderDecisionSection(kind, title, note, items, emoji){
   if(!items.length) return '';
   return `<section class="section ${kind}">
     <div class="section-head">
-      <h2>${title}<span class="count">${items.length} 项</span></h2>
+      <h2>${emoji} ${title}<span class="count">${items.length} 项</span></h2>
       <p class="section-note">${note}</p>
     </div>
     <div class="cards">${items.map(decisionCard).join('')}</div>
@@ -367,9 +381,9 @@ function renderDecisions(){
   const yellow = (DATA.yellow || []).map(normalizeYellow);
   const red = (DATA.red || []).map(normalizeRed);
   return `<div class="decision-grid">
-    ${renderDecisionSection('green','可清理','Safe Clean：缓存、临时文件、可再生内容。',green)}
-    ${renderDecisionSection('yellow','需确认','Review First：含用户数据或应用托管数据。',yellow)}
-    ${renderDecisionSection('red','别乱动','Do Not Touch：走应用内或正规卸载流程。',red)}
+    ${renderDecisionSection('green','可清理','可直接清理的缓存和临时文件，删除后工具会自动重建。','green','✅')}
+    ${renderDecisionSection('yellow','需确认','包含用户数据，需要你审查后再决定是否删除。',yellow,'⚠️')}
+    ${renderDecisionSection('red','别乱动','系统文件或应用本体，通过应用内设置或正规卸载处理。',red,'🔒')}
   </div>`;
 }
 

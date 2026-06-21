@@ -39,14 +39,28 @@ TEMPLATE = os.path.join(HERE, "..", "assets", "report_template.html")
 
 def main():
     if len(sys.argv) < 2:
-        print(__doc__)
+        print("用法: build_report.py <analysis.json> [output.html]")
+        print("\n将分析结果生成为静态 HTML 报告（不带删除按钮）。")
+        print("示例: python3 build_report.py /tmp/clearskill_analysis.json ~/Desktop/report.html")
         sys.exit(1)
     src = sys.argv[1]
+
+    if not os.path.exists(src):
+        print(f"❌ 错误: 找不到文件 {src}")
+        print("请先运行 scan.py 并生成分析结果。")
+        sys.exit(1)
+
     out = sys.argv[2] if len(sys.argv) > 2 else os.path.expanduser(
         "~/Desktop/clearskill-report.html")
 
-    with open(src, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    try:
+        with open(src, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except json.JSONDecodeError as e:
+        print(f"❌ 错误: JSON 文件格式不正确")
+        print(f"详细信息: {e}")
+        sys.exit(1)
+
     with open(TEMPLATE, "r", encoding="utf-8") as f:
         tpl = f.read()
 
@@ -56,8 +70,17 @@ def main():
 
     with open(out, "w", encoding="utf-8") as f:
         f.write(html)
-    print(f"报告已生成: {out}")
-    print(f"打开: open '{out}'")
+    print(f"✓ 报告已生成: {out}")
+    print(f"  用浏览器打开: open '{out}'")
+
+    # 显示统计信息
+    if 'summary' in data and 'tier_stats' in data['summary']:
+        ts = data['summary']['tier_stats']
+        print(f"\n📊 清理潜力:")
+        print(f"  可清理: {ts.get('green', '-')}")
+        print(f"  需确认: {ts.get('yellow', '-')}")
+        print(f"  别乱动: {ts.get('red', '-')}")
+
 
 
 if __name__ == "__main__":

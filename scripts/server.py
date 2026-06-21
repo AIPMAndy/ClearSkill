@@ -229,21 +229,42 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     if len(sys.argv) < 2:
-        print(__doc__)
+        print("用法: server.py <analysis.json>")
+        print("\n启动本地服务器，提供带一键操作按钮的交互式报告。")
+        print("示例: python3 server.py /tmp/clearskill_analysis.json")
         sys.exit(1)
+
+    if not os.path.exists(sys.argv[1]):
+        print(f"❌ 错误: 找不到文件 {sys.argv[1]}")
+        print("请先运行 scan.py 并生成分析结果。")
+        sys.exit(1)
+
     global DATA, TPL, RM_ALLOW, TRASH_ALLOW, OPEN_ALLOW
-    DATA, TPL, RM_ALLOW, TRASH_ALLOW, OPEN_ALLOW = load(sys.argv[1])
+    try:
+        DATA, TPL, RM_ALLOW, TRASH_ALLOW, OPEN_ALLOW = load(sys.argv[1])
+    except Exception as e:
+        print(f"❌ 加载失败: {e}")
+        sys.exit(1)
+
     srv = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     port = srv.server_address[1]
     url = "http://127.0.0.1:%d/" % port
-    print("报告服务已启动：" + url)
-    print("绿灯可删 %d 项 | 橙灯可移废纸篓/打开文件夹 %d 项 | 页面上点" % (len(RM_ALLOW), len(TRASH_ALLOW) - len(RM_ALLOW)))
-    print("用完按 Ctrl+C 停止服务（服务关掉后按钮即失效）")
+    print("=" * 60)
+    print("🚀 ClearSkill 交互式报告服务已启动")
+    print("=" * 60)
+    print(f"  URL: {url}")
+    print(f"  绿灯可删: {len(RM_ALLOW)} 项")
+    print(f"  橙灯可移废纸篓: {len(TRASH_ALLOW) - len(RM_ALLOW)} 项")
+    print(f"\n💡 提示:")
+    print(f"  - 点击按钮执行操作前会弹出确认对话框")
+    print(f"  - 服务关闭后，页面上的按钮会失效")
+    print(f"  - 按 Ctrl+C 停止服务")
+    print("=" * 60)
     webbrowser.open(url)
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
-        print("\n已停止服务。")
+        print("\n\n✓ 服务已停止。报告页面的按钮现已失效。")
 
 
 if __name__ == "__main__":

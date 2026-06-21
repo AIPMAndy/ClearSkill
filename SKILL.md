@@ -22,6 +22,8 @@ needs review, or something that should not be touched directly.
 - Never delete paths outside an allowlist generated from `green[].trash_paths`.
 - Keep paths and commands exactly as-is. Do not translate filesystem paths.
 - Mark all reclaimable space as estimated.
+- Use emoji and friendly language in summaries to make results scannable.
+- Always explain WHY something is safe or risky — users need context to trust decisions.
 
 ## Workflow
 
@@ -109,6 +111,21 @@ In chat, give a short conclusion:
 - the first 2-3 actions to take
 - the riskiest Review First / Do Not Touch item
 - the report path or local URL
+
+Example summary format:
+```
+✓ 扫描完成。可清理约 3.2 GB 缓存，建议优先处理：
+
+1. 【可清理 2.4 GB】pnpm 包缓存 — 移到废纸篓，确认项目正常后清空
+2. 【可清理 0.8 GB】Homebrew 缓存 — 或运行 brew cleanup
+
+⚠️ 需要你确认的：
+- 微信数据 3.0 GB — 在微信内清理聊天文件，不要直接删除目录
+
+📄 详细报告: ~/Desktop/clearskill-report.html
+```
+
+Keep the summary actionable and prioritized. Users should know what to do first without reading the full report.
 
 ## Classification Guide
 
